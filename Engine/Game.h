@@ -22,7 +22,11 @@
 
 #include "Keyboard.h"
 #include "Mouse.h"
+#include "Sound.h"
 #include "Graphics.h"
+#include "Board.h"
+#include "Vei2.h"
+#include "GameLogic.h"
 
 class Game
 {
@@ -42,5 +46,9 @@ private:
 	Graphics gfx;
 	/********************************/
 	/*  User Variables              */
+
+	Sound mine;
+	Board brd;
+	GameLogic gl;
 	/********************************/
 };

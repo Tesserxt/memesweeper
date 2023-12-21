@@ -24,7 +24,10 @@
 Game::Game( MainWindow& wnd )
 	:
 	wnd( wnd ),
-	gfx( wnd )
+	gfx( wnd ),
+	brd(gfx),
+	gl(10),
+	mine(L"Sounds\\surprise.wav")
 {
 }
 
@@ -38,8 +41,35 @@ void Game::Go()
 
 void Game::UpdateModel()
 {
+	/*if (wnd.mouse.LeftIsPressed())
+	{
+		Vei2 mousepos = wnd.mouse.GetPos();
+	    if (gl.GetRect().ContainsPoint(mousepos))
+	    {
+	    	
+	    }
+	}*/
+	while (!wnd.mouse.IsEmpty())
+	{
+		const Mouse::Event e = wnd.mouse.Read();
+		if (e.GetType() == Mouse::Event::Type::LPress)
+		{
+			Vei2 mousepos = e.GetPos();
+			gl.RevealOnClickEvent(mousepos);
+		}
+		else if (e.GetType() == Mouse::Event::Type::RPress)
+		{   
+			Vei2 mousepos = e.GetPos();
+			if (gl.GetRect().ContainsPoint(mousepos))
+			{
+				gl.FlagOnClickEvent(mousepos);
+			}
+		}
+	}
 }
 
 void Game::ComposeFrame()
-{
+{	
+	gl.Draw(gfx);
 }
+ 
