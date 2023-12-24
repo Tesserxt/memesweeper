@@ -24,7 +24,6 @@
 #include "Mouse.h"
 #include "Sound.h"
 #include "Graphics.h"
-#include "Board.h"
 #include "Vei2.h"
 #include "GameLogic.h"
 
@@ -48,7 +47,6 @@ private:
 	/*  User Variables              */
 
 	Sound mine;
-	Board brd;
 	GameLogic gl;
 	/********************************/
 };

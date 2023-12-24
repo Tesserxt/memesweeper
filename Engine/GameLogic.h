@@ -1,5 +1,4 @@
 #pragma once
-#include "Board.h"
 #include "Vei2.h"
 #include "SpriteCodex.h"
 #include<random>
@@ -23,23 +22,27 @@ private:
 		void Draw( const Vei2 screenpos, bool GameOver, Graphics& gfx) const;
 		void Reveal();
 		bool hasRevealed() const;
-		void ToggleFlag();
+		void ToggleFlag(bool value);
 		bool hasFlagged() const;
 		void SetAdjMinesCount( const int nAdjMineCount);
 		
 	private:
-		State state = State::Hidden;
+		State state = State::Hidden   ;
 		bool hasMine = false;
 		int nAdjMines = -1; //uninitialized
 	};
 	 
 public:
-	GameLogic(int nMines);
+	GameLogic(Vei2& center);
 	void Draw(Graphics& gfx) const;
 	RectI GetRect() const;
 	void RevealOnClickEvent(Vei2 screenpos);
 	void FlagOnClickEvent(Vei2 screenpos);
+	void RemoveFlagOnClickEvent(Vei2 screenpos);
 	int NumberingCellsAdjToMines( const Vei2& BombLoc );
+	bool IsWon(Vei2& gridpos);
+	int minesFlagged = 0;
+	int nMines = 10;
 
 private:
 	Tile& TileAt( const Vei2& gridpos);
@@ -48,9 +51,10 @@ private:
 
 
 private:   
-	Vei2 BoardLoc = { 0, 0 };
-	static constexpr int width = 20;
+	Vei2 boardpos;
+	static constexpr int width  = 20;
 	static constexpr int height = 16;
 	Tile field[width * height];
 	bool GameOver = false;
+	
 };

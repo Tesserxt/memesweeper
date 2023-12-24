@@ -25,8 +25,7 @@ Game::Game( MainWindow& wnd )
 	:
 	wnd( wnd ),
 	gfx( wnd ),
-	brd(gfx),
-	gl(10),
+	gl(gfx.GetRect().GetCenter()),
 	mine(L"Sounds\\surprise.wav")
 {
 }
@@ -55,7 +54,18 @@ void Game::UpdateModel()
 		if (e.GetType() == Mouse::Event::Type::LPress)
 		{
 			Vei2 mousepos = e.GetPos();
-			gl.RevealOnClickEvent(mousepos);
+			if (gl.GetRect().ContainsPoint(mousepos))
+			{
+				gl.RevealOnClickEvent(mousepos);
+			}
+		}
+		else if (wnd.kbd.KeyIsPressed(VK_SPACE) && e.GetType() == Mouse::Event::Type::RPress)
+		{   
+			Vei2 mousepos = e.GetPos();
+			if (gl.GetRect().ContainsPoint(mousepos))
+			{
+				gl.RemoveFlagOnClickEvent(mousepos);
+			}
 		}
 		else if (e.GetType() == Mouse::Event::Type::RPress)
 		{   
@@ -65,11 +75,12 @@ void Game::UpdateModel()
 				gl.FlagOnClickEvent(mousepos);
 			}
 		}
+		
 	}
 }
 
 void Game::ComposeFrame()
 {	
-	gl.Draw(gfx);
+	gl.Draw(gfx); 
 }
  

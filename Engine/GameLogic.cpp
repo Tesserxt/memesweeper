@@ -4,7 +4,9 @@
 #include "SpriteCodex.h"
 #include <algorithm>
 
-GameLogic::GameLogic(int nMines)
+GameLogic::GameLogic(Vei2& center)
+	:
+	boardpos( center - Vei2(width * SpriteCodex::tileSize, height * SpriteCodex::tileSize)/2 )
 {
 	std::random_device rd;
 	std::mt19937 rng(rd());
@@ -25,8 +27,8 @@ GameLogic::GameLogic(int nMines)
 		i++;
 	}
 
-	for (Vei2 gridpos = { 0, 0 }; gridpos.y < height; gridpos.y++)
-	{
+	for (Vei2 gridpos = { 0,0 }; gridpos.y < height; gridpos.y++)
+	{					
 		for (gridpos.x = 0; gridpos.x < width; gridpos.x++)
 		{		
 			TileAt(gridpos).SetAdjMinesCount(NumberingCellsAdjToMines(gridpos));
@@ -125,10 +127,18 @@ bool GameLogic::Tile::hasRevealed() const
 	return state == State::Revealed;;
 }
 
-void GameLogic::Tile::ToggleFlag()
+void GameLogic::Tile::ToggleFlag(bool value)
 {
-	assert(!hasFlagged() && !hasRevealed());
-	state = State::Flagged;
+	if (value)
+	{
+		assert(!hasFlagged() && !hasRevealed());
+		state = State::Flagged;
+	}
+	else
+	{
+		assert(hasFlagged() && !hasRevealed());
+		state = State::Hidden;
+	}
 }
 
 bool GameLogic::Tile::hasFlagged() const
@@ -163,15 +173,32 @@ int GameLogic::NumberingCellsAdjToMines( const Vei2& gridpos)
 	return count;
 }
 
+bool GameLogic::IsWon(Vei2& gridpos)
+{
+	for (Vei2 gridpos = { 0,0 }; gridpos.y < height; gridpos.y++)
+	{
+		for (gridpos.x = 0; gridpos.x < width; gridpos.x++)
+		{
+			if (TileAt(gridpos).getHasMine() && TileAt(gridpos).hasFlagged())
+			{
+				minesFlagged++;
+			}
+		}
+	}
+
+	return false;
+}
+
 
 void GameLogic::Draw(Graphics& gfx) const
 {
+	gfx.DrawRect(GetRect().GetExpanded(SpriteCodex::tileSize), Colors::Blue);
 	gfx.DrawRect(GetRect(), SpriteCodex::baseColor);
-	for (Vei2 gridpos = { 0, 0 }; gridpos.y < height; gridpos.y++)
+	for (Vei2 gridpos = {0,0}; gridpos.y < height; gridpos.y++)
 	{
 		for (gridpos.x = 0; gridpos.x < width; gridpos.x++)
 		{	
-			TileAt(gridpos).Draw(gridpos * SpriteCodex::tileSize, GameOver, gfx);
+			TileAt(gridpos).Draw( boardpos + gridpos * SpriteCodex::tileSize, GameOver, gfx);
 		}
 	}
 
@@ -179,7 +206,7 @@ void GameLogic::Draw(Graphics& gfx) const
 
 RectI GameLogic::GetRect() const
 {
-	return RectI(0, width * SpriteCodex::tileSize, 0, height * SpriteCodex::tileSize);
+	return RectI( boardpos, width * SpriteCodex::tileSize, height * SpriteCodex::tileSize);
 }
 
 void GameLogic::RevealOnClickEvent(Vei2 screenpos)
@@ -209,10 +236,25 @@ void GameLogic::FlagOnClickEvent(Vei2 screenpos)
 		Tile& Tile = TileAt(gridpos);
 		if (!Tile.hasRevealed() && !Tile.hasFlagged())
 		{
-			Tile.ToggleFlag();	
+			Tile.ToggleFlag(true);	
 		}
 	}
 }
+
+void GameLogic::RemoveFlagOnClickEvent(Vei2 screenpos)
+{
+	if (!GameOver)
+	{
+		assert(GetRect().ContainsPoint(screenpos));
+		Vei2 gridpos = ScreenToGrid(screenpos);
+		Tile& Tile = TileAt(gridpos);
+		if (!Tile.hasRevealed() && Tile.hasFlagged())
+		{
+			Tile.ToggleFlag(false);
+		}
+	}
+}
+
 
 GameLogic::Tile& GameLogic::TileAt(const Vei2& gridpos)
 {
@@ -226,6 +268,6 @@ const GameLogic::Tile& GameLogic::TileAt(const Vei2& gridpos) const
 
 Vei2 GameLogic::ScreenToGrid(const Vei2& screenpos)
 {
-	return screenpos/SpriteCodex::tileSize;
+	return (screenpos - boardpos)/SpriteCodex::tileSize;
 }
 
