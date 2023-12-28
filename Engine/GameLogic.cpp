@@ -20,7 +20,7 @@ GameLogic::GameLogic(Vei2& center)
 		{
 			spawnpos = { xDist(rng), yDist(rng) };
 
-		} while ( TileAt( spawnpos ).getHasMine());
+		} while ( TileAt( spawnpos ).hasMine());
 
 		TileAt(spawnpos).SpawnMine();
 		
@@ -38,13 +38,13 @@ GameLogic::GameLogic(Vei2& center)
 
 void GameLogic::Tile::SpawnMine()
 {
-	assert(!hasMine);
-	hasMine = true;
+	assert(!hasMined);
+	hasMined = true;
 }
 
-bool GameLogic::Tile::getHasMine() const
+bool GameLogic::Tile::hasMine() const
 {
-	return hasMine;
+	return hasMined;
 }
 
 void GameLogic::Tile::Draw(const Vei2 screenpos, bool GameOver, Graphics& gfx) const
@@ -63,7 +63,7 @@ void GameLogic::Tile::Draw(const Vei2 screenpos, bool GameOver, Graphics& gfx) c
 			break;
 
 		case State::Revealed:
-			if (!hasMine)
+			if (!hasMined)
 			{
 				SpriteCodex::DrawTileNumber(screenpos, nAdjMines, gfx);
 			}
@@ -79,7 +79,7 @@ void GameLogic::Tile::Draw(const Vei2 screenpos, bool GameOver, Graphics& gfx) c
 		switch (state)
 		{
 		case State::Hidden:
-			if (hasMine)
+			if (hasMined)
 			{
 				SpriteCodex::DrawTileBomb(screenpos, gfx);
 			}
@@ -90,20 +90,20 @@ void GameLogic::Tile::Draw(const Vei2 screenpos, bool GameOver, Graphics& gfx) c
 			break;
 
 		case State::Flagged:
-			if (hasMine)
+			if (hasMined)
 			{
 				SpriteCodex::DrawTileBomb(screenpos, gfx);
 				SpriteCodex::DrawTileFlag(screenpos, gfx);
 			}
 			else
 			{
-				SpriteCodex::DrawTileBomb(screenpos, gfx);
+				//SpriteCodex::DrawTileBomb(screenpos, gfx);
 				SpriteCodex::DrawTileCross(screenpos, gfx);
 			}
 			break;
 
 		case State::Revealed:
-			if (!hasMine)
+			if (!hasMined)
 			{
 				SpriteCodex::DrawTileNumber(screenpos, nAdjMines, gfx);
 			}
@@ -146,6 +146,11 @@ bool GameLogic::Tile::hasFlagged() const
 	return state == State::Flagged;
 }
 
+bool GameLogic::Tile::hasNoAjdMines() const
+{
+	return nAdjMines == 0;
+}
+
 void GameLogic::Tile::SetAdjMinesCount(const int nAdjMineCount)
 {
 	assert(nAdjMines == -1);
@@ -164,7 +169,7 @@ int GameLogic::NumberingCellsAdjToMines( const Vei2& gridpos)
 	{
 		for (gpos.x = xStart; gpos.x <= xEnd; gpos.x++)
 		{
-			if (TileAt(gpos).getHasMine())
+			if (TileAt(gpos).hasMine())
 			{
 				count++;
 			}
@@ -173,22 +178,60 @@ int GameLogic::NumberingCellsAdjToMines( const Vei2& gridpos)
 	return count;
 }
 
-bool GameLogic::IsWon(Vei2& gridpos)
+void GameLogic::DestroyEmptyCells(const Vei2& gridpos)
 {
-	for (Vei2 gridpos = { 0,0 }; gridpos.y < height; gridpos.y++)
+
+	Tile& Tile = TileAt(gridpos);
+	if (!Tile.hasRevealed() && !Tile.hasFlagged())
 	{
-		for (gridpos.x = 0; gridpos.x < width; gridpos.x++)
+		Tile.Reveal();
+		assert( ! TileAt(gridpos).hasNoAjdMines());
+		if (Tile.hasNoAjdMines())
 		{
-			if (TileAt(gridpos).getHasMine() && TileAt(gridpos).hasFlagged())
+			const int xStart = std::max(0, gridpos.x - 1);
+			const int yStart = std::max(0, gridpos.y - 1);
+			const int xEnd = std::min(width - 1, gridpos.x + 1);
+			const int yEnd = std::min(height - 1, gridpos.y + 1);
+
+			for (Vei2 gpos = { xStart, yStart }; gpos.y <= yEnd; gpos.y++)
 			{
-				minesFlagged++;
+				for (gpos.x = xStart; gpos.x <= xEnd; gpos.x++)
+				{
+					DestroyEmptyCells(gpos);
+				}
 			}
 		}
 	}
 
-	return false;
+
+
 }
 
+bool GameLogic::isWon() const
+{
+	for (const Tile t : field)
+	{
+		if (t.hasMine() && !t.hasFlagged() ||
+			!t.hasMine() && !t.hasRevealed())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool GameLogic::isGameOver() const
+{
+	return GameOver;
+}
+
+void GameLogic::CountMinesFlagged(Vei2& gridpos)
+{	
+	if (TileAt(gridpos).hasMine() && TileAt(gridpos).hasFlagged())
+	{
+		nMinesFlagged++;
+	}
+}
 
 void GameLogic::Draw(Graphics& gfx) const
 {
@@ -217,12 +260,14 @@ void GameLogic::RevealOnClickEvent(Vei2 screenpos)
 		Vei2 gridpos = ScreenToGrid(screenpos);
 		Tile& Tile = TileAt(gridpos);
 		if (!Tile.hasRevealed())
-		{
-			Tile.Reveal();
-			if (Tile.getHasMine())
+		{	
+			if (Tile.hasMine())
 			{
 				GameOver = true;
+				surprise.Play();
 			}
+			if( Tile.hasNoAjdMines())
+				DestroyEmptyCells(gridpos);
 		}
 	}
 }
@@ -236,7 +281,8 @@ void GameLogic::FlagOnClickEvent(Vei2 screenpos)
 		Tile& Tile = TileAt(gridpos);
 		if (!Tile.hasRevealed() && !Tile.hasFlagged())
 		{
-			Tile.ToggleFlag(true);	
+			Tile.ToggleFlag(true);
+			CountMinesFlagged(gridpos);
 		}
 	}
 }

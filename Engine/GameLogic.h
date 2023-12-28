@@ -3,6 +3,7 @@
 #include "SpriteCodex.h"
 #include<random>
 #include "RectI.h"
+#include "Sound.h"
 
 class GameLogic
 {
@@ -18,17 +19,18 @@ private:
 		};
 	public:
 		void SpawnMine();
-		bool getHasMine() const;
+		bool hasMine() const;
 		void Draw( const Vei2 screenpos, bool GameOver, Graphics& gfx) const;
 		void Reveal();
 		bool hasRevealed() const;
 		void ToggleFlag(bool value);
 		bool hasFlagged() const;
+		bool hasNoAjdMines() const;
 		void SetAdjMinesCount( const int nAdjMineCount);
 		
 	private:
-		State state = State::Hidden   ;
-		bool hasMine = false;
+		State state = State::Hidden ;
+		bool hasMined = false;
 		int nAdjMines = -1; //uninitialized
 	};
 	 
@@ -39,22 +41,29 @@ public:
 	void RevealOnClickEvent(Vei2 screenpos);
 	void FlagOnClickEvent(Vei2 screenpos);
 	void RemoveFlagOnClickEvent(Vei2 screenpos);
-	int NumberingCellsAdjToMines( const Vei2& BombLoc );
-	bool IsWon(Vei2& gridpos);
-	int minesFlagged = 0;
-	int nMines = 10;
+	int NumberingCellsAdjToMines( const Vei2& gridpos );
+	
+	bool isWon() const;
+	bool isGameOver() const;
+	
+	int nMinesFlagged = 0;
+	
 
 private:
 	Tile& TileAt( const Vei2& gridpos);
 	const Tile& TileAt( const Vei2& gridpos) const;
+	void CountMinesFlagged(Vei2& gridpos);
 	Vei2 ScreenToGrid(const Vei2& screenpos);
+	void DestroyEmptyCells(const Vei2& gridpos);
 
 
 private:   
 	Vei2 boardpos;
-	static constexpr int width  = 20;
-	static constexpr int height = 16;
-	Tile field[width * height];
+	int nMines = 10;
 	bool GameOver = false;
-	
+	Sound surprise = { L"Sounds\\surprise.wav" };
+	static constexpr int width  = 10;
+	static constexpr int height = 8;
+	Tile field[width * height];
+	int r = 0;
 };

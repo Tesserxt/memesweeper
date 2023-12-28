@@ -25,8 +25,7 @@ Game::Game( MainWindow& wnd )
 	:
 	wnd( wnd ),
 	gfx( wnd ),
-	gl(gfx.GetRect().GetCenter()),
-	mine(L"Sounds\\surprise.wav")
+	gl(gfx.GetRect().GetCenter())
 {
 }
 
@@ -48,39 +47,50 @@ void Game::UpdateModel()
 	    	
 	    }
 	}*/
-	while (!wnd.mouse.IsEmpty())
+	if (!gl.isGameOver())
 	{
-		const Mouse::Event e = wnd.mouse.Read();
-		if (e.GetType() == Mouse::Event::Type::LPress)
+		while (!wnd.mouse.IsEmpty())
 		{
-			Vei2 mousepos = e.GetPos();
-			if (gl.GetRect().ContainsPoint(mousepos))
+			const Mouse::Event e = wnd.mouse.Read();
+			if (e.GetType() == Mouse::Event::Type::LPress)
 			{
-				gl.RevealOnClickEvent(mousepos);
+				Vei2 mousepos = e.GetPos();
+				if (gl.GetRect().ContainsPoint(mousepos))
+				{
+					gl.RevealOnClickEvent(mousepos);
+				}
+			}
+			else if (wnd.kbd.KeyIsPressed(VK_SPACE) && e.GetType() == Mouse::Event::Type::RPress)
+			{
+				Vei2 mousepos = e.GetPos();
+				if (gl.GetRect().ContainsPoint(mousepos))
+				{
+					gl.RemoveFlagOnClickEvent(mousepos);
+				}
+			}
+			else if (e.GetType() == Mouse::Event::Type::RPress)
+			{
+				Vei2 mousepos = e.GetPos();
+				if (gl.GetRect().ContainsPoint(mousepos))
+				{
+					gl.FlagOnClickEvent(mousepos);
+				}
 			}
 		}
-		else if (wnd.kbd.KeyIsPressed(VK_SPACE) && e.GetType() == Mouse::Event::Type::RPress)
-		{   
-			Vei2 mousepos = e.GetPos();
-			if (gl.GetRect().ContainsPoint(mousepos))
-			{
-				gl.RemoveFlagOnClickEvent(mousepos);
-			}
-		}
-		else if (e.GetType() == Mouse::Event::Type::RPress)
-		{   
-			Vei2 mousepos = e.GetPos();
-			if (gl.GetRect().ContainsPoint(mousepos))
-			{
-				gl.FlagOnClickEvent(mousepos);
-			}
-		}
-		
 	}
 }
 
 void Game::ComposeFrame()
-{	
-	gl.Draw(gfx); 
+{
+	gl.Draw(gfx);
+	if (gl.isWon())
+	{
+		SpriteCodex::DrawWin(Vei2(200, 100), gfx);
+	}
+	else if (gl.isGameOver())
+	{
+		SpriteCodex::DrawSmall(Vei2(200, 100), gfx);
+	}
+	 
 }
  
